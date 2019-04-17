@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+
+<html>
+
+	<head>
+		<title>LED blink</title>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+		<!-- Bootstrap CSS -->
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+		<link rel="stylesheet" href="style.css" />
+	</head>
+
+	<body>
+		<div class="container-fluid">
+			<div class="row justify-content-md-center">
+				<div class="col-lg-4 col-md-6 col-sm-12 text-center">
+					<h2>Blink LED motherfucker!</h2>
+                    <br />
+                    <button id="toggleButton" class="btn btn-lg btn-primary" onclick="toggleLed()">Toggle</button>
+                    <div>
+                        State: <span id="state" class="badge badge-pill badge-success">ON</span>
+                    </div>
+                </div>
+            </div>
+            <br />
+            <br />
+			<div class="row justify-content-md-center">
+                <div class="col-sm-12 text-center">
+                    <div>
+                        <h2>Show temp motherfucker!</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="row justify-content-md-center">
+                <div class="col-md-6 col-sm-12 text-center">
+                    <canvas id="tempChart"></canvas>
+                    Temperature: <span id="temp" class="badge badge-pill badge-info">0</span><span>°C</span>
+                </div>
+                <div class="col-md-6 col-sm-12 text-center">
+                    <canvas id="humidityChart"></canvas>
+                    Humidity: <span id="humidity" class="badge badge-pill badge-warning">0</span>
+                </div>
+            </div>
+		</div>
+		<script>
+            var tempChart;
+            var humidityChart;
+			var state = 0;
+            var ws = new WebSocket('ws://' + window.location.hostname)
+            // var ws = new WebSocket('ws://192.168.1.45')
+
+			ws.onopen = (event) => {
+				ws.send('GET STATE')
+			}
+
+			ws.onmessage = (event) => {
+				console.log('Response from server: ', event.data)
+				if (event.data.includes('STATE IS')) {
+					state = parseInt(event.data.split(':')[1])
+					var stateSpan = document.getElementById('state')
+					if (state === 1) {
+						stateSpan.classList.remove('badge-danger')
+						stateSpan.classList.add('badge-success')
+						stateSpan.innerText = 'ON'
+					} else if (state === 0) {
+						stateSpan.classList.remove('badge-success')
+						stateSpan.classList.add('badge-danger')
+						stateSpan.innerText = 'OFF'
+					}
+				} else if (event.data.includes('TEMP IS')) {
+                    // update label
+					var tempSpan = document.getElementById('temp')
+                    temp = parseInt(event.data.split(':')[1]) - 4
+                    tempSpan.innerText = temp
+
+                    // update chart
+                    tempChart.data.labels.push(new Date().toLocaleTimeString());
+                    tempChart.data.datasets.forEach((dataset) => {
+                        if (dataset.data.length === 10) {
+                            tempChart.data.labels.shift()
+                            dataset.data.shift()
+                        }
+                        dataset.data.push(temp);
+                    });
+                    tempChart.update();
+                } else if (event.data.includes('HUMIDITY IS')) {
+                    // update label
+                    var humiditySpan = document.getElementById('humidity')
+                    humidity = parseInt(event.data.split(':')[1])
+                    humiditySpan.innerText = humidity
+                    // update chart
+                    humidityChart.data.labels.push(new Date().toLocaleTimeString());
+                    humidityChart.data.datasets.forEach((dataset) => {
+                        if (dataset.data.length === 10) {
+                            humidityChart.data.labels.shift()
+                            dataset.data.shift()
+                        }
+                        dataset.data.push(humidity);
+                    });
+                    humidityChart.update()
+                }
+			}
+
+			toggleLed = () => {
+				if (state === 0) {
+					ws.send('SET STATE:1')
+				} else {
+					ws.send('SET STATE:0')
+				}
+            }
+
+            getTemp = () => {
+                ws.send('GET TEMP')
+            }
+
+            setInterval(() => getTemp(), 2500)
+
+            createTempChart = () => {
+                var ctx = document.getElementById('tempChart').getContext('2d');
+                tempChart = new Chart(ctx, {
+                    // The type of chart we want to create
+                    type: 'line',
+
+                    // The data for our dataset
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Temperature',
+                            backgroundColor: 'transparent',
+                            borderColor: '#17a2b8',
+                            data: []
+                        }]
+                    },
+
+                    // Configuration options go here
+                    options: {
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    suggestedMin: 15,
+                                    suggestedMax: 30
+                                }
+                            }]
+                        }
+                    }
+                });
+            }
+
+            createHumidityChart = () => {
+                var ctx = document.getElementById('humidityChart').getContext('2d');
+                humidityChart = new Chart(ctx, {
+                    // The type of chart we want to create
+                    type: 'line',
+
+                    // The data for our dataset
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Humidity',
+                            backgroundColor: 'transparent',
+                            borderColor: '#ffc107',
+                            data: []
+                        }]
+                    },
+
+                    // Configuration options go here
+                    options: {
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    suggestedMin: 35,
+                                    suggestedMax: 45
+                                }
+                            }]
+                        }
+                    }
+                });
+            }
+
+            window.addEventListener('DOMContentLoaded', (event) => {
+                console.log('DOM fully loaded and parsed');
+                createTempChart();
+                createHumidityChart();
+            });
+		</script>
+		<!-- Optional JavaScript -->
+        <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.js"></script>
+		<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+	</body>
+</html>
