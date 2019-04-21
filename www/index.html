@@ -59,14 +59,26 @@
                                 <span>steps</span>
                             </div>
                         </div>
-                    </div>                    
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="angleOrSteps" id="radioAngle" value="angle" checked onclick="changeRotationUnit('angle')">
-                        <label class="form-check-label" for="radioAngle">Angle</label>
+                    </div>  
+                    <div class="form-group">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="angleOrSteps" id="radioAngle" value="angle" checked onclick="changeRotationUnit('angle')">
+                            <label class="form-check-label" for="radioAngle">Angle</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="angleOrSteps" id="radioSteps" value="steps" onclick="changeRotationUnit('steps')" >
+                            <label class="form-check-label" for="radioSteps">Steps</label>
+                        </div>
                     </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="angleOrSteps" id="radioSteps" value="steps" onclick="changeRotationUnit('steps')" >
-                        <label class="form-check-label" for="radioSteps">Steps</label>
+                    <div class="form-group">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="motors" id="radioMotor0" value="0" checked onclick="changeMotor(0)">
+                            <label class="form-check-label" for="radioMotor0">Motor 1</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="motors" id="radioMotor1" value="1" onclick="changeMotor(1)" >
+                            <label class="form-check-label" for="radioMotor1">Motor 2</label>
+                        </div>
                     </div>
                     <br />
                     <div class="btn-group" role="group">
@@ -75,13 +87,22 @@
                     </div>
                 </div>
             </div>
-            <br />
+            <br />            
+            <div class="row justify-content-md-center">
+                <div class="col-md-6 col-sm-12 text-center">
+                    <canvas id="distanceChart"></canvas>
+                    Distance: <span id="distance" class="badge badge-pill badge-danger">0</span><span>cm</span>
+                </div>                
+            </div>
             <br />
 		</div>
 		<script>
             var tempChart;
             var humidityChart;
 			var state = 0;
+
+            // motors
+            var activeMotor = 0
             var rotationUnit = 'angle'
             // var ws = new WebSocket('ws://' + window.location.hostname)
             var ws = new WebSocket('ws://192.168.0.106')
@@ -112,12 +133,12 @@
 
                     // update chart
                     tempChart.data.labels.push(new Date().toLocaleTimeString());
-                    tempChart.data.datasets.forEach((dataset) => {
+                    tempChart.data.datasets.forEach(dataset => {
                         if (dataset.data.length === 10) {
                             tempChart.data.labels.shift()
                             dataset.data.shift()
                         }
-                        dataset.data.push(temp);
+                        dataset.data.push(temp)
                     });
                     tempChart.update();
                 } else if (event.data.includes('HUMIDITY IS')) {
@@ -127,14 +148,29 @@
                     humiditySpan.innerText = humidity
                     // update chart
                     humidityChart.data.labels.push(new Date().toLocaleTimeString());
-                    humidityChart.data.datasets.forEach((dataset) => {
+                    humidityChart.data.datasets.forEach(dataset => {
                         if (dataset.data.length === 10) {
                             humidityChart.data.labels.shift()
                             dataset.data.shift()
                         }
-                        dataset.data.push(humidity);
+                        dataset.data.push(humidity)
                     });
                     humidityChart.update()
+                } else if (event.data.includes('DISTANCE IS')) {
+                    // update label
+                    var distanceSpan = document.getElementById('distance')
+                    distance = parseInt(event.data.split(':')[1])
+                    distanceSpan.innerText = distance
+                    // update chart
+                    distanceChart.data.labels.push(new Date().toLocaleTimeString());
+                    distanceChart.data.datasets.forEach(dataset => {
+                        if (dataset.data.length === 10) {
+                            distanceChart.data.labels.shift()
+                            dataset.data.shift()
+                        }
+                        dataset.data.push(distance)
+                    });
+                    distanceChart.update()                    
                 }
 			}
 
@@ -226,29 +262,71 @@
                 }                
             }
 
+            changeMotor = (newMotor) => {
+                activeMotor = newMotor
+            }
+
             rotateStepper = (direction) => {
                 var unitsOfRotation = document.getElementById('unitsOfRotation').value
 
                 if (rotationUnit === 'angle') {
                     if (direction === 'CW') {
-                        ws.send('ROTATE ANGLE CW:' + unitsOfRotation)
+                        ws.send('ROTATE ANGLE CW:' + activeMotor + ':' + unitsOfRotation)
                     } else {
-                        ws.send('ROTATE ANGLE CCW:' + unitsOfRotation)
+                        ws.send('ROTATE ANGLE CCW:' + activeMotor + ':' + unitsOfRotation)
                     }
                 } else if (rotationUnit === 'steps') {                    
                     if (direction === 'CW') {
-                        ws.send('ROTATE STEPS CW:' + unitsOfRotation)
+                        ws.send('ROTATE STEPS CW:' + activeMotor + ':' + unitsOfRotation)
                     } else {
-                        ws.send('ROTATE STEPS CCW:' + unitsOfRotation)
+                        ws.send('ROTATE STEPS CCW:' + activeMotor + ':' + unitsOfRotation)
                     }
                 }
 
             }
 
+            createDistanceChart = () => {
+                var ctx = document.getElementById('distanceChart').getContext('2d');
+                distanceChart = new Chart(ctx, {
+                    // The type of chart we want to create
+                    type: 'line',
+
+                    // The data for our dataset
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Distance',
+                            backgroundColor: 'transparent',
+                            borderColor: '#ffc107',
+                            data: []
+                        }]
+                    },
+
+                    // Configuration options go here
+                    options: {
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    suggestedMin: 10,
+                                    suggestedMax: 150
+                                }
+                            }]
+                        }
+                    }
+                });
+            }
+
+            getDistance = () => {
+                ws.send('GET DISTANCE')
+            }
+
+            setInterval(() => getDistance(), 2500)
+
             window.addEventListener('DOMContentLoaded', (event) => {
                 console.log('DOM fully loaded and parsed');
                 createTempChart();
                 createHumidityChart();
+                createDistanceChart();
             });
 		</script>
 		<!-- Optional JavaScript -->

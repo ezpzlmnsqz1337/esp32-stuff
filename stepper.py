@@ -1,123 +1,125 @@
 import machine
 import time
 
-pins = [
-	machine.Pin(5, machine.Pin.OUT),  # 1
-	machine.Pin(18, machine.Pin.OUT), # 2
-	machine.Pin(19, machine.Pin.OUT), # 4
-	machine.Pin(21, machine.Pin.OUT), # 8
-]
+class MyStepper:
+	def __init__(self, pin0, pin1, pin2, pin3, speed):
+		self.pin0 = machine.Pin(pin0, machine.Pin.OUT)
+		self.pin1 = machine.Pin(pin1, machine.Pin.OUT)
+		self.pin2 = machine.Pin(pin2, machine.Pin.OUT)
+		self.pin3 = machine.Pin(pin3, machine.Pin.OUT)
 
-rychlost = 0.001
-uhel = 360
+		self.speed = speed
 
-def rotateCW(steps):
-	totalSteps = 0	
-	while totalSteps < steps:
-		rotateCWStep()
-		totalSteps += 8
-
-def rotateCCW(steps):
-	totalSteps = 0
-	while totalSteps < steps:
-		rotateCCWStep()
-		totalSteps += 8
-
-def rotateCWAngle(angle):
-	for i in range(angle * 64 / 45):
-		rotateCWStep()
-
-def rotateCCWAngle(angle):
-	for i in range(angle * 64 / 45):
-		rotateCCWStep()
-
-def loop():
-	for i in range(uhel * 64 / 45):
-		rotateCWStep()
-	# pauza po dobu 1 vteřiny
-	time.sleep(1)
-
-	for i in range(uhel * 64 / 45):
-		rotateCCWStep()
-
-	# pauza po dobu 1 vteřiny
-	time.sleep(1)
+		# 5 18 19 21
 
 
-def rotateCWStep():
-	step1()
-	step2()
-	step3()
-	step4()
-	step5()
-	step6()
-	step7()
-	step8()
+	def rotateCW(self, steps):
+		totalSteps = 0	
+		while totalSteps < steps:
+			self.rotateCWStep()
+			totalSteps += 8
+
+	def rotateCCW(self, steps):
+		totalSteps = 0
+		while totalSteps < steps:
+			self.rotateCCWStep()
+			totalSteps += 8
+
+	def rotateCWAngle(self, angle):
+		for i in range(angle * 64 / 45):
+			self.rotateCWStep()
+
+	def rotateCCWAngle(self, angle):
+		for i in range(angle * 64 / 45):
+			self.rotateCCWStep()
+
+	def loop(self):
+		for i in range(360 * 64 / 45):
+			self.rotateCWStep()
+		# pauza po dobu 1 vteřiny
+		time.sleep(1)
+
+		for i in range(360 * 64 / 45):
+			self.rotateCCWStep()
+
+		# pauza po dobu 1 vteřiny
+		time.sleep(1)
 
 
-def rotateCCWStep():
-	step8()
-	step7()
-	step6()
-	step5()
-	step4()
-	step3()
-	step2()
-	step1()
+	def rotateCWStep(self):
+		self.step1()
+		self.step2()
+		self.step3()
+		self.step4()
+		self.step5()
+		self.step6()
+		self.step7()
+		self.step8()
 
 
-def step1() :
-	pins[0].value(1)
-	pins[1].value(0)
-	pins[2].value(0)
-	pins[3].value(0)
-	time.sleep(rychlost)
+	def rotateCCWStep(self):
+		self.step8()
+		self.step7()
+		self.step6()
+		self.step5()
+		self.step4()
+		self.step3()
+		self.step2()
+		self.step1()
 
-def step2():
-	pins[0].value(1)
-	pins[1].value(1)
-	pins[2].value(0)
-	pins[3].value(0)
-	time.sleep(rychlost)
 
-def step3():
-	pins[0].value(0)
-	pins[1].value(1)
-	pins[2].value(0)
-	pins[3].value(0)
-	time.sleep(rychlost)
+	def step1(self):
+		self.pin0.value(1)
+		self.pin1.value(0)
+		self.pin2.value(0)
+		self.pin3.value(0)
+		time.sleep(self.speed)
 
-def step4():
-	pins[0].value(0)
-	pins[1].value(1)
-	pins[2].value(1)
-	pins[3].value(0)
-	time.sleep(rychlost)
+	def step2(self):
+		self.pin0.value(1)
+		self.pin1.value(1)
+		self.pin2.value(0)
+		self.pin3.value(0)
+		time.sleep(self.speed)
 
-def step5():
-	pins[0].value(0)
-	pins[1].value(0)
-	pins[2].value(1)
-	pins[3].value(0)
-	time.sleep(rychlost)
+	def step3(self):
+		self.pin0.value(0)
+		self.pin1.value(1)
+		self.pin2.value(0)
+		self.pin3.value(0)
+		time.sleep(self.speed)
 
-def step6():
-	pins[0].value(0)
-	pins[1].value(0)
-	pins[2].value(1)
-	pins[3].value(1)
-	time.sleep(rychlost)
+	def step4(self):
+		self.pin0.value(0)
+		self.pin1.value(1)
+		self.pin2.value(1)
+		self.pin3.value(0)
+		time.sleep(self.speed)
 
-def step7():
-	pins[0].value(0)
-	pins[1].value(0)
-	pins[2].value(0)
-	pins[3].value(1)
-	time.sleep(rychlost)
+	def step5(self):
+		self.pin0.value(0)
+		self.pin1.value(0)
+		self.pin2.value(1)
+		self.pin3.value(0)
+		time.sleep(self.speed)
 
-def step8():
-	pins[0].value(1)
-	pins[1].value(0)
-	pins[2].value(0)
-	pins[3].value(1)
-	time.sleep(rychlost)
+	def step6(self):
+		self.pin0.value(0)
+		self.pin1.value(0)
+		self.pin2.value(1)
+		self.pin3.value(1)
+		time.sleep(self.speed)
+
+	def step7(self):
+		self.pin0.value(0)
+		self.pin1.value(0)
+		self.pin2.value(0)
+		self.pin3.value(1)
+		time.sleep(self.speed)
+
+	def step8(self):
+		self.pin0.value(1)
+		self.pin1.value(0)
+		self.pin2.value(0)
+		self.pin3.value(1)
+		time.sleep(self.speed)

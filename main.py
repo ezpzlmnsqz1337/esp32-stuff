@@ -2,6 +2,16 @@ from microWebSrv import MicroWebSrv
 import machine
 import dht
 import stepper
+from hcsr04 import HCSR04
+
+sensor = HCSR04(trigger_pin = 33, echo_pin = 32)
+
+distance = sensor.distance_cm()
+
+motors = [
+	stepper.MyStepper(5, 18, 19, 21, 0.001),
+	stepper.MyStepper(13, 12, 14, 27, 0.001)
+]
 
 d = dht.DHT11(machine.Pin(4))
 led = machine.Pin(2, machine.Pin.OUT)
@@ -116,23 +126,31 @@ def _recvTextCallback(webSocket, msg) :
 			# send WS info about the new state
 			d.measure()
 			webSocket.SendText("TEMP IS:%s" % d.temperature())
-			webSocket.SendText("HUMIDITY IS:%s" % d.humidity())
+			webSocket.SendText("HUMIDITY IS:%s" % d.humidity())			
+		elif 'GET DISTANCE' in msg:
+			# send WS info about the distance
+			distance = sensor.distance_cm()
+			webSocket.SendText("DISTANCE IS:%s" % distance)
 		elif 'ROTATE ANGLE CW' in msg:
-			angle = msg.split(':')[1]
-			stepper.rotateCWAngle(int(angle))
+			angle = int(msg.split(':')[2])
+			index = int(msg.split(':')[1])
+			motors[index].rotateCWAngle(angle)
 			webSocket.SendText("STEPPER ROTATING:%s°" % angle)
 		elif 'ROTATE ANGLE CCW' in msg:
-			angle = msg.split(':')[1]
-			stepper.rotateCCWAngle(int(angle))
+			angle = int(msg.split(':')[2])
+			index = int(msg.split(':')[1])
+			motors[index].rotateCCWAngle(angle)
 			webSocket.SendText("STEPPER ROTATING:%s°" % angle)
 		elif 'ROTATE STEPS CW' in msg:
-			steps = msg.split(':')[1]
-			stepper.rotateCW(int(steps))
+			steps = int(msg.split(':')[2])
+			index = int(msg.split(':')[1])
+			motors[index].rotateCW(steps)
 			webSocket.SendText("STEPPER ROTATING:%s steps" % steps)
 		elif 'ROTATE STEPS CCW' in msg:
-			steps = msg.split(':')[1]
-			stepper.rotateCCW(int(steps))
-			webSocket.SendText("STEPPER ROTATING:%s steps" % angle)
+			steps =int( msg.split(':')[2])
+			index = int(msg.split(':')[1])
+			motors[index].rotateCCW(steps)
+			webSocket.SendText("STEPPER ROTATING:%s steps" % steps)
 
 def _recvBinaryCallback(webSocket, data) :
 	print("WS RECV DATA : %s" % data)
