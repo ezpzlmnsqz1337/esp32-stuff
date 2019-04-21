@@ -42,13 +42,49 @@
                     Humidity: <span id="humidity" class="badge badge-pill badge-warning">0</span>
                 </div>
             </div>
+            <br />
+            <div class="row justify-content-md-center">
+				<div class="col-lg-4 col-md-6 col-sm-12 text-center">
+					<h2>Rotate stepper!</h2>
+                    <br />
+                    <div class="input-group">
+                        <input type="number" id="unitsOfRotation" class="form-control" value="360" />
+                        <div id="unitAngle" class="input-group-append">
+                            <div class="input-group-text">
+                                <span>°</span>
+                            </div>
+                        </div>
+                        <div id="unitSteps" class="input-group-append hidden">
+                            <div class="input-group-text">
+                                <span>steps</span>
+                            </div>
+                        </div>
+                    </div>                    
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="angleOrSteps" id="radioAngle" value="angle" checked onclick="changeRotationUnit('angle')">
+                        <label class="form-check-label" for="radioAngle">Angle</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="angleOrSteps" id="radioSteps" value="steps" onclick="changeRotationUnit('steps')" >
+                        <label class="form-check-label" for="radioSteps">Steps</label>
+                    </div>
+                    <br />
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-primary" onclick="rotateStepper('CW')">CW</button>
+                        <button type="button" class="btn btn-secondary" onclick="rotateStepper('CCW')">CCW</button>
+                    </div>
+                </div>
+            </div>
+            <br />
+            <br />
 		</div>
 		<script>
             var tempChart;
             var humidityChart;
 			var state = 0;
-            var ws = new WebSocket('ws://' + window.location.hostname)
-            // var ws = new WebSocket('ws://192.168.1.45')
+            var rotationUnit = 'angle'
+            // var ws = new WebSocket('ws://' + window.location.hostname)
+            var ws = new WebSocket('ws://192.168.0.106')
 
 			ws.onopen = (event) => {
 				ws.send('GET STATE')
@@ -176,6 +212,37 @@
                         }
                     }
                 });
+            }
+
+            changeRotationUnit = (unit) => {
+                this.rotationUnit = unit
+
+                if (rotationUnit === 'angle') {
+                    document.getElementById('unitAngle').classList.remove('hidden')
+                    document.getElementById('unitSteps').classList.add('hidden')
+                } else if (rotationUnit === 'steps') { 
+                    document.getElementById('unitAngle').classList.add('hidden')
+                    document.getElementById('unitSteps').classList.remove('hidden')
+                }                
+            }
+
+            rotateStepper = (direction) => {
+                var unitsOfRotation = document.getElementById('unitsOfRotation').value
+
+                if (rotationUnit === 'angle') {
+                    if (direction === 'CW') {
+                        ws.send('ROTATE ANGLE CW:' + unitsOfRotation)
+                    } else {
+                        ws.send('ROTATE ANGLE CCW:' + unitsOfRotation)
+                    }
+                } else if (rotationUnit === 'steps') {                    
+                    if (direction === 'CW') {
+                        ws.send('ROTATE STEPS CW:' + unitsOfRotation)
+                    } else {
+                        ws.send('ROTATE STEPS CCW:' + unitsOfRotation)
+                    }
+                }
+
             }
 
             window.addEventListener('DOMContentLoaded', (event) => {

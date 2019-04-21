@@ -1,6 +1,7 @@
 from microWebSrv import MicroWebSrv
 import machine
 import dht
+import stepper
 
 d = dht.DHT11(machine.Pin(4))
 led = machine.Pin(2, machine.Pin.OUT)
@@ -12,26 +13,26 @@ def _httpHandlerTestGet(httpClient, httpResponse) :
 	content = """\
 	<!DOCTYPE html>
 	<html lang=en>
-        <head>
-        	<meta charset="UTF-8" />
-            <title>TEST GET</title>
-        </head>
-        <body>
-            <h1>TEST GET</h1>
-            Client IP address = %s
-            <br />
+				<head>
+					<meta charset="UTF-8" />
+						<title>TEST GET</title>
+				</head>
+				<body>
+						<h1>TEST GET</h1>
+						Client IP address = %s
+						<br />
 			<form action="/test" method="post" accept-charset="ISO-8859-1">
 				First name: <input type="text" name="firstname"><br />
 				Last name: <input type="text" name="lastname"><br />
 				<input type="submit" value="Submit">
 			</form>
-        </body>
-    </html>
+				</body>
+		</html>
 	""" % httpClient.GetIPAddr()
 	httpResponse.WriteResponseOk( headers		 = None,
-								  contentType	 = "text/html",
-								  contentCharset = "UTF-8",
-								  content 		 = content )
+									contentType	 = "text/html",
+									contentCharset = "UTF-8",
+									content 		 = content )
 
 
 @MicroWebSrv.route('/test', 'POST')
@@ -44,20 +45,20 @@ def _httpHandlerTestPost(httpClient, httpResponse) :
 	<html lang=en>
 		<head>
 			<meta charset="UTF-8" />
-            <title>TEST POST</title>
-        </head>
-        <body>
-            <h1>TEST POST</h1>
-            Firstname = %s<br />
-            Lastname = %s<br />
-        </body>
-    </html>
+						<title>TEST POST</title>
+				</head>
+				<body>
+						<h1>TEST POST</h1>
+						Firstname = %s<br />
+						Lastname = %s<br />
+				</body>
+		</html>
 	""" % ( MicroWebSrv.HTMLEscape(firstname),
-		    MicroWebSrv.HTMLEscape(lastname) )
+				MicroWebSrv.HTMLEscape(lastname) )
 	httpResponse.WriteResponseOk( headers		 = None,
-								  contentType	 = "text/html",
-								  contentCharset = "UTF-8",
-								  content 		 = content )
+									contentType	 = "text/html",
+									contentCharset = "UTF-8",
+									content 		 = content )
 
 
 @MicroWebSrv.route('/edit/<index>')             # <IP>/edit/123           ->   args['index']=123
@@ -67,11 +68,11 @@ def _httpHandlerEditWithArgs(httpClient, httpResponse, args={}) :
 	content = """\
 	<!DOCTYPE html>
 	<html lang=en>
-        <head>
-        	<meta charset="UTF-8" />
-            <title>TEST EDIT</title>
-        </head>
-        <body>
+				<head>
+					<meta charset="UTF-8" />
+						<title>TEST EDIT</title>
+				</head>
+				<body>
 	"""
 	content += "<h1>EDIT item with {} variable arguments</h1>"\
 		.format(len(args))
@@ -83,13 +84,13 @@ def _httpHandlerEditWithArgs(httpClient, httpResponse, args={}) :
 		content += "<p>foo = {}</p>".format(args['foo'])
 
 	content += """
-        </body>
-    </html>
+				</body>
+		</html>
 	"""
 	httpResponse.WriteResponseOk( headers		 = None,
-								  contentType	 = "text/html",
-								  contentCharset = "UTF-8",
-								  content 		 = content )
+									contentType	 = "text/html",
+									contentCharset = "UTF-8",
+									content 		 = content )
 
 # ----------------------------------------------------------------------------
 
@@ -101,21 +102,37 @@ def _acceptWebSocketCallback(webSocket, httpClient) :
 
 
 def _recvTextCallback(webSocket, msg) :
-    print("WS RECV TEXT : %s" % msg)
-    if 'SET STATE:' in msg:
-        newState = msg.split(':')[1]
-        # set led to given state
-        led(int(newState))
-        # send WS info about the new state
-        webSocket.SendText("STATE IS:%s" % newState)
-    elif 'GET STATE' in msg:
-        # send WS info about the new state
-        webSocket.SendText("STATE IS:%s" % led.value())
-    elif 'GET TEMP' in msg:
-        # send WS info about the new state
-        d.measure()
-        webSocket.SendText("TEMP IS:%s" % d.temperature())
-        webSocket.SendText("HUMIDITY IS:%s" % d.humidity())
+		print("WS RECV TEXT : %s" % msg)
+		if 'SET STATE:' in msg:
+			newState = msg.split(':')[1]
+			# set led to given state
+			led(int(newState))
+			# send WS info about the new state
+			webSocket.SendText("STATE IS:%s" % newState)
+		elif 'GET STATE' in msg:
+			# send WS info about the new state
+			webSocket.SendText("STATE IS:%s" % led.value())
+		elif 'GET TEMP' in msg:
+			# send WS info about the new state
+			d.measure()
+			webSocket.SendText("TEMP IS:%s" % d.temperature())
+			webSocket.SendText("HUMIDITY IS:%s" % d.humidity())
+		elif 'ROTATE ANGLE CW' in msg:
+			angle = msg.split(':')[1]
+			stepper.rotateCWAngle(int(angle))
+			webSocket.SendText("STEPPER ROTATING:%s°" % angle)
+		elif 'ROTATE ANGLE CCW' in msg:
+			angle = msg.split(':')[1]
+			stepper.rotateCCWAngle(int(angle))
+			webSocket.SendText("STEPPER ROTATING:%s°" % angle)
+		elif 'ROTATE STEPS CW' in msg:
+			steps = msg.split(':')[1]
+			stepper.rotateCW(int(steps))
+			webSocket.SendText("STEPPER ROTATING:%s steps" % steps)
+		elif 'ROTATE STEPS CCW' in msg:
+			steps = msg.split(':')[1]
+			stepper.rotateCCW(int(steps))
+			webSocket.SendText("STEPPER ROTATING:%s steps" % angle)
 
 def _recvBinaryCallback(webSocket, data) :
 	print("WS RECV DATA : %s" % data)
