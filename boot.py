@@ -7,13 +7,13 @@ import time
 #from upysh import *
 #import machine
 
-#mdns = network.mDNS()
+mdns = network.mDNS()
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
 
 # Hardcoded password in plaintext :-D
 NETWORKS = {
-    "ssid" : "password"
+    "ssid": "password"
 }
 
 wifiConnected = False
@@ -67,7 +67,7 @@ del(ssid)
 del(i)
 del(wifiConnected)
 
-#mdns.start('mPy', 'MicroPython ESP32')
+mdns.start('mPy', 'MicroPython ESP32')
 #ftp.start(user='YOUR_USERNAME', password='YOUR_PASSWORD')
 #telnet.start(user='YOUR_USERNAME', password='YOUR_PASSWORD')
 

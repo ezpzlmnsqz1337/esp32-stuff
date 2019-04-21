@@ -104,11 +104,13 @@
             // motors
             var activeMotor = 0
             var rotationUnit = 'angle'
-            // var ws = new WebSocket('ws://' + window.location.hostname)
-            var ws = new WebSocket('ws://192.168.0.106')
+            var ws = new WebSocket('ws://' + window.location.hostname)
+            // var ws = new WebSocket('ws://192.168.0.106')
 
 			ws.onopen = (event) => {
-				ws.send('GET STATE')
+				ws.send('GET STATE')        
+                subscribeTemp()
+                subscribeDistance()
 			}
 
 			ws.onmessage = (event) => {
@@ -186,7 +188,9 @@
                 ws.send('GET TEMP')
             }
 
-            setInterval(() => getTemp(), 2500)
+            subscribeTemp = () => {
+                ws.send('SUBSCRIBE TEMP')
+            }
 
             createTempChart = () => {
                 var ctx = document.getElementById('tempChart').getContext('2d');
@@ -316,18 +320,19 @@
                 });
             }
 
-            getDistance = () => {
-                ws.send('GET DISTANCE')
+            
+            subscribeDistance = () => {
+                ws.send('SUBSCRIBE DISTANCE')
             }
-
-            setInterval(() => getDistance(), 2500)
 
             window.addEventListener('DOMContentLoaded', (event) => {
                 console.log('DOM fully loaded and parsed');
-                createTempChart();
-                createHumidityChart();
-                createDistanceChart();
+                createTempChart()
+                createHumidityChart()
+                createDistanceChart()
             });
+
+
 		</script>
 		<!-- Optional JavaScript -->
         <!-- jQuery first, then Popper.js, then Bootstrap JS -->

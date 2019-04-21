@@ -16,6 +16,9 @@ motors = [
 d = dht.DHT11(machine.Pin(4))
 led = machine.Pin(2, machine.Pin.OUT)
 
+
+timTemp = machine.Timer(-1)
+timDistance = machine.Timer(0)
 # ----------------------------------------------------------------------------
 
 @MicroWebSrv.route('/test')
@@ -110,6 +113,14 @@ def _acceptWebSocketCallback(webSocket, httpClient) :
 	webSocket.RecvBinaryCallback = _recvBinaryCallback
 	webSocket.ClosedCallback 	 = _closedCallback
 
+def measureTemperatureCallback(webSocket):
+	d.measure()
+	webSocket.SendText("TEMP IS:%s" % d.temperature())
+	webSocket.SendText("HUMIDITY IS:%s" % d.humidity())	
+
+def measureDistanceCallback(webSocket):
+	distance = sensor.distance_cm()
+	webSocket.SendText("DISTANCE IS:%s" % distance)
 
 def _recvTextCallback(webSocket, msg) :
 		print("WS RECV TEXT : %s" % msg)
@@ -126,7 +137,15 @@ def _recvTextCallback(webSocket, msg) :
 			# send WS info about the new state
 			d.measure()
 			webSocket.SendText("TEMP IS:%s" % d.temperature())
-			webSocket.SendText("HUMIDITY IS:%s" % d.humidity())			
+			webSocket.SendText("HUMIDITY IS:%s" % d.humidity())
+		elif 'SUBSCRIBE TEMP' in msg:
+			# send WS info about the new state
+			timTemp.init(period=2500, mode=machine.Timer.PERIODIC, callback=lambda t:measureTemperatureCallback(webSocket))
+			print('TEMP init')
+		elif 'SUBSCRIBE DISTANCE' in msg:
+			# send WS info about the new state
+			print('Timer init')
+			timDistance.init(period=500, mode=machine.Timer.PERIODIC, callback=lambda t:measureDistanceCallback(webSocket))
 		elif 'GET DISTANCE' in msg:
 			# send WS info about the distance
 			distance = sensor.distance_cm()
@@ -157,6 +176,8 @@ def _recvBinaryCallback(webSocket, data) :
 
 def _closedCallback(webSocket) :
 	print("WS CLOSED")
+	timTemp.deinit()
+	timDistance.deinit()
 
 # ----------------------------------------------------------------------------
 
@@ -167,7 +188,7 @@ def _closedCallback(webSocket) :
 
 srv = MicroWebSrv(webPath='www/')
 srv.MaxWebSocketRecvLen     = 256
-srv.WebSocketThreaded		= False
+srv.WebSocketThreaded		= True
 srv.AcceptWebSocketCallback = _acceptWebSocketCallback
 srv.Start()
 
