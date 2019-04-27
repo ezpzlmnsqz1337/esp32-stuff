@@ -2,6 +2,7 @@ from microWebSrv import MicroWebSrv
 import machine
 import dht
 import stepper
+
 from hcsr04 import HCSR04
 
 sensor = HCSR04(trigger_pin = 33, echo_pin = 32)
@@ -19,6 +20,14 @@ led = machine.Pin(2, machine.Pin.OUT)
 
 timTemp = machine.Timer(-1)
 timDistance = machine.Timer(0)
+timMotors = machine.Timer(1)
+
+def moveMotors():
+	motors[0].move()
+	motors[1].move()
+
+timMotors.init(period=10, mode=machine.Timer.PERIODIC, callback=lambda t:moveMotors())
+
 # ----------------------------------------------------------------------------
 
 @MicroWebSrv.route('/test')
@@ -107,6 +116,7 @@ def _httpHandlerEditWithArgs(httpClient, httpResponse, args={}) :
 
 # ----------------------------------------------------------------------------
 
+
 def _acceptWebSocketCallback(webSocket, httpClient) :
 	print("WS ACCEPT")
 	webSocket.RecvTextCallback   = _recvTextCallback
@@ -123,53 +133,55 @@ def measureDistanceCallback(webSocket):
 	webSocket.SendText("DISTANCE IS:%s" % distance)
 
 def _recvTextCallback(webSocket, msg) :
-		print("WS RECV TEXT : %s" % msg)
-		if 'SET STATE:' in msg:
-			newState = msg.split(':')[1]
-			# set led to given state
-			led(int(newState))
-			# send WS info about the new state
-			webSocket.SendText("STATE IS:%s" % newState)
-		elif 'GET STATE' in msg:
-			# send WS info about the new state
-			webSocket.SendText("STATE IS:%s" % led.value())
-		elif 'GET TEMP' in msg:
-			# send WS info about the new state
-			d.measure()
-			webSocket.SendText("TEMP IS:%s" % d.temperature())
-			webSocket.SendText("HUMIDITY IS:%s" % d.humidity())
-		elif 'SUBSCRIBE TEMP' in msg:
-			# send WS info about the new state
-			timTemp.init(period=2500, mode=machine.Timer.PERIODIC, callback=lambda t:measureTemperatureCallback(webSocket))
-			print('TEMP init')
-		elif 'SUBSCRIBE DISTANCE' in msg:
-			# send WS info about the new state
-			print('Timer init')
-			timDistance.init(period=500, mode=machine.Timer.PERIODIC, callback=lambda t:measureDistanceCallback(webSocket))
-		elif 'GET DISTANCE' in msg:
-			# send WS info about the distance
-			distance = sensor.distance_cm()
-			webSocket.SendText("DISTANCE IS:%s" % distance)
-		elif 'ROTATE ANGLE CW' in msg:
-			angle = int(msg.split(':')[2])
-			index = int(msg.split(':')[1])
-			motors[index].rotateCWAngle(angle)
-			webSocket.SendText("STEPPER ROTATING:%s°" % angle)
-		elif 'ROTATE ANGLE CCW' in msg:
-			angle = int(msg.split(':')[2])
-			index = int(msg.split(':')[1])
-			motors[index].rotateCCWAngle(angle)
-			webSocket.SendText("STEPPER ROTATING:%s°" % angle)
-		elif 'ROTATE STEPS CW' in msg:
-			steps = int(msg.split(':')[2])
-			index = int(msg.split(':')[1])
-			motors[index].rotateCW(steps)
-			webSocket.SendText("STEPPER ROTATING:%s steps" % steps)
-		elif 'ROTATE STEPS CCW' in msg:
-			steps =int( msg.split(':')[2])
-			index = int(msg.split(':')[1])
-			motors[index].rotateCCW(steps)
-			webSocket.SendText("STEPPER ROTATING:%s steps" % steps)
+	print("WS RECV TEXT : %s" % msg)
+	if 'SET STATE:' in msg:
+		newState = msg.split(':')[1]
+		# set led to given state
+		led(int(newState))
+		# send WS info about the new state
+		webSocket.SendText("STATE IS:%s" % newState)
+	elif 'GET STATE' in msg:
+		# send WS info about the new state
+		webSocket.SendText("STATE IS:%s" % led.value())
+	elif 'GET TEMP' in msg:
+		# send WS info about the new state
+		d.measure()
+		webSocket.SendText("TEMP IS:%s" % d.temperature())
+		webSocket.SendText("HUMIDITY IS:%s" % d.humidity())
+	elif 'SUBSCRIBE TEMP' in msg:
+		# send WS info about the new state
+		timTemp.init(period=2500, mode=machine.Timer.PERIODIC, callback=lambda t:measureTemperatureCallback(webSocket))
+		print('TEMP init')
+	elif 'SUBSCRIBE DISTANCE' in msg:
+		# send WS info about the new state
+		print('Timer init')
+		timDistance.init(period=500, mode=machine.Timer.PERIODIC, callback=lambda t:measureDistanceCallback(webSocket))
+	elif 'GET DISTANCE' in msg:
+		# send WS info about the distance
+		distance = sensor.distance_cm()
+		webSocket.SendText("DISTANCE IS:%s" % distance)
+	elif 'ROTATE ANGLE CW' in msg:
+		angle = int(msg.split(':')[2])
+		index = int(msg.split(':')[1])
+		motors[index].rotateCWAngle(angle)
+		webSocket.SendText("STEPPER ROTATING:%s°" % angle)
+	elif 'ROTATE ANGLE CCW' in msg:
+		angle = int(msg.split(':')[2])
+		index = int(msg.split(':')[1])
+		motors[index].rotateCCWAngle(angle)
+		webSocket.SendText("STEPPER ROTATING:%s°" % angle)
+	elif 'ROTATE STEPS CW' in msg:
+		steps = int(msg.split(':')[2])
+		index = int(msg.split(':')[1])
+		motor = motors[index]
+		motor.setTargetPosition(motor.getPosition() + steps)
+		webSocket.SendText("STEPPER ROTATING:%s steps" % steps)
+	elif 'ROTATE STEPS CCW' in msg:
+		steps =int( msg.split(':')[2])
+		index = int(msg.split(':')[1])
+		motor = motors[index]
+		motor.setTargetPosition(motor.getPosition() - steps)
+		webSocket.SendText("STEPPER ROTATING:%s steps" % steps)
 
 def _recvBinaryCallback(webSocket, data) :
 	print("WS RECV DATA : %s" % data)

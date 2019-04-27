@@ -8,22 +8,52 @@ class MyStepper:
 		self.pin2 = machine.Pin(pin2, machine.Pin.OUT)
 		self.pin3 = machine.Pin(pin3, machine.Pin.OUT)
 
+		self.position = 0
+		self.target = 0
+
 		self.speed = speed
 
 		# 5 18 19 21
 
+	def setPosition(self, newPosition):
+		self.position = newPosition
+
+	def getPosition(self):
+		return self.position
+
+	def setTargetPosition(self, targetPosition):
+		self.target = targetPosition
+
+	def getTargetPosition(self):
+		return self.target
+
+	def move():
+		if position == target:
+			self.disable()
+		if self.position < self.target:
+			self.rotateCW(1)
+		else if self.position > self.target:
+			self.rotateCCW(1)
+
+	def disable():
+		self.pin0.value(0)
+		self.pin1.value(0)
+		self.pin2.value(0)
+		self.pin3.value(0)
 
 	def rotateCW(self, steps):
 		totalSteps = 0	
 		while totalSteps < steps:
 			self.rotateCWStep()
 			totalSteps += 8
+		position += 1
 
 	def rotateCCW(self, steps):
 		totalSteps = 0
 		while totalSteps < steps:
 			self.rotateCCWStep()
 			totalSteps += 8
+		position -= 1
 
 	def rotateCWAngle(self, angle):
 		for i in range(angle * 64 / 45):
